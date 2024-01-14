@@ -1,4 +1,5 @@
 import { readFileSync } from "fs";
+import { convertLineToDigits } from "../Utilities/utils";
 
 const filePath = "../data.txt";
 const text = readFileSync(filePath, "utf8").toString();
@@ -6,13 +7,15 @@ const text = readFileSync(filePath, "utf8").toString();
 const lines : Array<string> = text.split("\n");
 
 const arrayOfSums = lines.map( ( line ) => {
-    const numericLine = line.match(/\d+/g);
+
+    const filteredLineWithDigits = convertLineToDigits( line );
+
+    const numericLine = filteredLineWithDigits.match(/\d+/g);
 
     if( !numericLine ) {
         return null;
     }
 
-    // [ '58', '146', '2' ]
     const firstDigit = numericLine[0].split("")[0];
     const lastDigit = numericLine[numericLine.length - 1].slice(-1);
 
@@ -29,4 +32,4 @@ const sumOfAllLines = arrayOfSums.reduce( (accum, currVal ) => {
     return accum + currVal
 }, 0)
 
-console.log(sumOfAllLines)
+console.log(sumOfAllLines);
