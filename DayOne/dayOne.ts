@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 
-const filePath = "data.txt";
+const filePath = "../data.txt";
 const text = readFileSync(filePath, "utf8").toString();
 
 const lines : Array<string> = text.split("\n");
@@ -30,7 +30,4 @@ const sumOfAllLines = arrayOfSums.reduce( (accum, currVal ) => {
     return accum + currVal
 }, 0)
 
-console.log(sumOfAllLines)
-
-
-
+console.log(sumOfAllLines);

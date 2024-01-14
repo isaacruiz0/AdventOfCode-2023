@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = require("fs");
-var filePath = "data.txt";
+var filePath = "../data.txt";
 var text = (0, fs_1.readFileSync)(filePath, "utf8").toString();
 var lines = text.split("\n");
-var arrayOfSums = lines.map(function (line, index) {
+var arrayOfSums = lines.map(function (line) {
     var numericLine = line.match(/\d+/g);
     if (!numericLine) {
         return null;
