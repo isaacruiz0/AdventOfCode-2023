@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = require("fs");
 var utils_1 = require("../Utilities/utils");
-var filePath = "../data.txt";
+var filePath = "../data/data.txt";
 var text = (0, fs_1.readFileSync)(filePath, "utf8").toString();
 var lines = text.split("\n");
 var arrayOfSums = lines.map(function (line) {

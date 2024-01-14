@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 
-const filePath = "../data.txt";
+const filePath = "../data/CalibrationValues.txt";
 const text = readFileSync(filePath, "utf8").toString();
 
 const lines : Array<string> = text.split("\n");
