@@ -5,7 +5,6 @@ const text = readFileSync(filePath, "utf8").toString();
 
 const lines : Array<string> = text.split("\n");
 
-
 const arrayOfSums = lines.map( ( line ) => {
     const numericLine = line.match(/\d+/g);
 
