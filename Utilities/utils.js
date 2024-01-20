@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.convertLineToDigits = void 0;
+exports.sumAllLines = exports.convertLineToDigits = void 0;
 function convertLineToDigits(line) {
     // Two conditions - digit or word
     // if digit simply add digit to new string
@@ -37,3 +37,14 @@ function convertLineToDigits(line) {
     return convertedString;
 }
 exports.convertLineToDigits = convertLineToDigits;
+function sumAllLines(arrayOfLines) {
+    var sumOfAllLines = arrayOfLines.reduce(function (accum, currVal) {
+        var lineAsNumber = Number(currVal);
+        if (isNaN(lineAsNumber)) {
+            return accum;
+        }
+        return Number(accum) + Number(lineAsNumber);
+    }, 0);
+    return Number(sumOfAllLines);
+}
+exports.sumAllLines = sumAllLines;

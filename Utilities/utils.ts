@@ -40,3 +40,16 @@ export function convertLineToDigits( line : string) : string {
 
     return convertedString
 }
+
+export function sumAllLines(arrayOfLines: Array<string | number>): number {
+    const sumOfAllLines = arrayOfLines.reduce((accum, currVal) => {
+        const lineAsNumber = Number(currVal);
+        if (isNaN(lineAsNumber)) {
+            return accum;
+        }    
+
+        return Number( accum ) + Number( lineAsNumber );
+    }, 0);
+
+    return Number( sumOfAllLines );
+}
