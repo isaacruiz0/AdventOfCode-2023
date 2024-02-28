@@ -1,35 +1,92 @@
-import { readFileSync } from "fs";
-import { convertLineToDigits } from "../Utilities/utils";
+// POSSIBLE GAMES FROM
+// 12 red cubes, 13 green cubes, and 14 blue cubes
+const { readFileSync } = require('fs');
 
-const filePath = "../data/CalibrationValues.txt";
-const text = readFileSync(filePath, "utf8").toString();
+const filePath = '../data/GameResultsList.txt';
 
-const lines : Array<string> = text.split("\n");
+const data = readFileSync(filePath, 'utf8');
+const lines : Array<string> = data.split('\n');
 
-const arrayOfSums = lines.map( ( line ) => {
+enum LOADED_BAG {
+    RED = 12,
+    GREEN = 13,
+    BLUE = 14
+}
 
-    const filteredLineWithDigits = convertLineToDigits( line );
+interface gameColorSubset {
+    red ?: number,
+    green ?: number,
+    blue ?: number
+}
 
-    const numericLine = filteredLineWithDigits.match(/\d+/g);
+const grabGameId = ( gameIdSplit : string ) : number => {
+    const gameId = gameIdSplit.split( ' ' )[1];
 
-    if( !numericLine ) {
-        return null;
-    }
+    return parseInt( gameId );
+}
 
-    const firstDigit = numericLine[0].split("")[0];
-    const lastDigit = numericLine[numericLine.length - 1].slice(-1);
+const grabSubsets = ( splitSubsets : string ) => {
+    const subsets = splitSubsets.split( ';' );
+   
+   // [ ' 3 blue, 4 red', ' 1 red, 2 green, 6 blue', ' 2 green' ] 
+    return subsets;
+}
 
-    const combinedDigit = Number( firstDigit + lastDigit ); 
+const createSubsetObjectList = ( subsets : Array<string> ) : Array<gameColorSubset> => {
+    let subsetList : Array<gameColorSubset> = [];
+    // [ ' 3 blue, 4 red', ' 1 red, 2 green, 6 blue', ' 2 green' ]
+    subsets.forEach( ( subset ) => {   
+        // [ ' 3 blue', ' 4 red' ]
+        const rolledCubes = subset.split( ',' );
 
-    return combinedDigit;
-});
+        const gameColorObject : gameColorSubset = {};
 
-const sumOfAllLines = arrayOfSums.reduce( (accum, currVal ) => {
-    if ( ( accum !== 0 && !accum ) || !currVal ) {
-        return 0;
-    }
+        rolledCubes.forEach( ( rolledCube ) => {
+            const rolledCubeSplit = rolledCube.split( ' ' );
+            gameColorObject[ rolledCubeSplit[2].trim() as keyof gameColorSubset ] = parseInt( rolledCubeSplit[1] ); 
+        } );
 
-    return accum + currVal
-}, 0)
+        subsetList.push( gameColorObject );
+    });
 
-console.log(sumOfAllLines);
+    return subsetList;
+}
+
+const isGameValid = ( subsetList : Array<gameColorSubset> ) : boolean => {
+    let validGame = true;
+    // [ { blue: 3, red: 4 }, { red: 1, green: 2, blue: 6 }, { green: 2 } ]
+    subsetList.forEach( ( subset ) => {
+        const invalidRed = subset.red && subset.red > LOADED_BAG.RED;
+        const invalidGreen = subset.green && subset.green > LOADED_BAG.GREEN;
+        const invalidBlue = subset.blue && subset.blue > LOADED_BAG.BLUE;
+        if ( invalidRed || invalidGreen || invalidBlue) {
+            validGame = false;
+        }
+    });
+    
+    return validGame;
+}
+
+const gatherValidGameIds = (lines: Array<string>) : Array<number> => {
+    let validGameIds : Array<number> = [];
+
+    lines.forEach( ( line ) => {
+        const splitGameIdAndColors = line.split( ':' );
+        const gameId = grabGameId( splitGameIdAndColors[0] );
+        const subsets = grabSubsets( splitGameIdAndColors[1] );
+        const subsetList = createSubsetObjectList( subsets );
+
+        if ( isGameValid( subsetList ) ) {
+            validGameIds.push( gameId );
+        }
+    })
+
+    return validGameIds;
+}
+
+const  validGameIds : Array<number> = gatherValidGameIds( lines );
+const sumOfValidGameIds = validGameIds.reduce( ( ret : number, currentValue : number ) : number => {
+    return ret + currentValue;
+} );
+
+console.log( sumOfValidGameIds );

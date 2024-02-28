@@ -1,25 +1,69 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var fs_1 = require("fs");
-var utils_1 = require("../Utilities/utils");
-var filePath = "../data/data.txt";
-var text = (0, fs_1.readFileSync)(filePath, "utf8").toString();
-var lines = text.split("\n");
-var arrayOfSums = lines.map(function (line) {
-    var filteredLineWithDigits = (0, utils_1.convertLineToDigits)(line);
-    var numericLine = filteredLineWithDigits.match(/\d+/g);
-    if (!numericLine) {
-        return null;
+// POSSIBLE GAMES FROM
+// 12 red cubes, 13 green cubes, and 14 blue cubes
+var readFileSync = require('fs').readFileSync;
+var filePath = '../data/GameResultsList.txt';
+var data = readFileSync(filePath, 'utf8');
+var lines = data.split('\n');
+var LOADED_BAG;
+(function (LOADED_BAG) {
+    LOADED_BAG[LOADED_BAG["RED"] = 12] = "RED";
+    LOADED_BAG[LOADED_BAG["GREEN"] = 13] = "GREEN";
+    LOADED_BAG[LOADED_BAG["BLUE"] = 14] = "BLUE";
+})(LOADED_BAG || (LOADED_BAG = {}));
+var grabGameId = function (gameIdSplit) {
+    var gameId = gameIdSplit.split(' ')[1];
+    return parseInt(gameId);
+};
+var grabSubsets = function (splitSubsets) {
+    var subsets = splitSubsets.split(';');
+    // [ ' 3 blue, 4 red', ' 1 red, 2 green, 6 blue', ' 2 green' ] 
+    return subsets;
+};
+var createSubsetObjectList = function (subsets) {
+    var subsetList = [];
+    // [ ' 3 blue, 4 red', ' 1 red, 2 green, 6 blue', ' 2 green' ]
+    subsets.forEach(function (subset) {
+        // [ ' 3 blue', ' 4 red' ]
+        var rolledCubes = subset.split(',');
+        var gameColorObject = {};
+        rolledCubes.forEach(function (rolledCube) {
+            var rolledCubeSplit = rolledCube.split(' ');
+            gameColorObject[rolledCubeSplit[2].trim()] = parseInt(rolledCubeSplit[1]);
+        });
+        subsetList.push(gameColorObject);
+    });
+    return subsetList;
+};
+var isGameValid = function (subsetList) {
+    var redCubes = 0;
+    var greenCubes = 0;
+    var blueCubes = 0;
+    subsetList.forEach(function (subset) {
+        redCubes += subset.red || 0;
+        greenCubes += subset.green || 0;
+        blueCubes += subset.blue || 0;
+    });
+    if (redCubes > LOADED_BAG.RED || greenCubes > LOADED_BAG.GREEN || blueCubes > LOADED_BAG.BLUE) {
+        return false;
     }
-    var firstDigit = numericLine[0].split("")[0];
-    var lastDigit = numericLine[numericLine.length - 1].slice(-1);
-    var combinedDigit = Number(firstDigit + lastDigit);
-    return combinedDigit;
+    return true;
+};
+var gatherValidGameIds = function (lines) {
+    var validGameIds = [];
+    lines.forEach(function (line) {
+        var splitGameIdAndColors = line.split(':');
+        var gameId = grabGameId(splitGameIdAndColors[0]);
+        var subsets = grabSubsets(splitGameIdAndColors[1]);
+        var subsetList = createSubsetObjectList(subsets);
+        if (isGameValid(subsetList)) {
+            validGameIds.push(gameId);
+        }
+    });
+    return validGameIds;
+};
+var validGameIds = gatherValidGameIds(lines);
+var sumOfValidGameIds = validGameIds.reduce(function (ret, currentValue) {
+    return ret + currentValue;
 });
-var sumOfAllLines = arrayOfSums.reduce(function (accum, currVal) {
-    if ((accum !== 0 && !accum) || !currVal) {
-        return 0;
-    }
-    return accum + currVal;
-}, 0);
-console.log(sumOfAllLines);
+console.log(validGameIds);
+console.log(sumOfValidGameIds);
