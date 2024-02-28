@@ -41,7 +41,7 @@ export function convertLineToDigits( line : string) : string {
     return convertedString
 }
 
-export function sumAllLines(arrayOfLines: Array<string | number>): number {
+export function sumAllLines(arrayOfLines: Array<string | number>) : number {
     const sumOfAllLines = arrayOfLines.reduce((accum, currVal) => {
         const lineAsNumber = Number(currVal);
         if (isNaN(lineAsNumber)) {
@@ -53,3 +53,20 @@ export function sumAllLines(arrayOfLines: Array<string | number>): number {
 
     return Number( sumOfAllLines );
 }
+
+export function getNumberAtIndex(str, index) {
+    // Regular expression to find numbers
+    const regex = /\d+/g;
+    let match;
+  
+    // Iterate over all number matches
+    while ((match = regex.exec(str)) !== null) {
+      // Check if the given index is within the current match
+      if (index >= match.index && index < match.index + match[0].length) {
+        
+        return match[0];
+      }
+    }
+  
+    return str.charAt( index ); // Return null if no number is found at the index
+  }

@@ -11,60 +11,75 @@ var sectionToArray = function (line, leftAdjacentIndex, rightAdjecentIndex) {
         return [];
     }
     var numberSection = line.slice(leftAdjacentIndex, rightAdjecentIndex);
-    var numberSectionArray = numberSection.split("");
-    numberSectionArray.forEach(function (item) {
-        sectionArray.push(item);
-    });
+    sectionArray = numberSection.split("");
     return sectionArray;
 };
-var numberIsAdjacentToSymbol = function (leftAdjacentIndex, rightAdjecentIndex, currentLine, topLine, bottomLine) {
-    var adjacentItemsContainer = [];
-    var topLineSection = sectionToArray(topLine, leftAdjacentIndex, rightAdjecentIndex);
-    var currentLineSection = sectionToArray(currentLine, leftAdjacentIndex, rightAdjecentIndex);
-    var bottomLineSection = sectionToArray(bottomLine, leftAdjacentIndex, rightAdjecentIndex);
-    adjacentItemsContainer = adjacentItemsContainer.concat(topLineSection, currentLineSection, bottomLineSection);
-    var containsSymbol = containsNonNumericItem(adjacentItemsContainer);
-    return containsSymbol;
+var getAdjacentNumbersFromLine = function (line, leftAdjacentIndex, rightAdjecentIndex) {
+    if (!line) {
+        return [];
+    }
+    var numberSection = line.slice(leftAdjacentIndex, rightAdjecentIndex);
+    var regexNumberMatch = /\d+/g;
+    var result;
+    var numberMatchIndexes = [];
+    while ((result = regexNumberMatch.exec(numberSection))) {
+        var startingNumberIndex = leftAdjacentIndex + result.index;
+        numberMatchIndexes.push(startingNumberIndex);
+    }
+    var adjacentNumbers = [];
+    log(line);
+    numberMatchIndexes.forEach(function (numberMatchIndex) {
+        log('Number Index', numberMatchIndex);
+        adjacentNumbers.push(Number((0, utils_1.getNumberAtIndex)(line, numberMatchIndex)));
+    });
+    return adjacentNumbers;
 };
-var containsNonNumericItem = function (adjacentItemsContainer) {
-    return adjacentItemsContainer.some(function (item) { return isNaN(Number(item)) && item !== "."; });
+var getGearRatio = function (leftAdjacentIndex, rightAdjecentIndex, currentLine, topLine, bottomLine) {
+    var adjacentNumbersContainer = [];
+    var topAdjacentNumbers = getAdjacentNumbersFromLine(topLine, leftAdjacentIndex, rightAdjecentIndex);
+    var currentAdjacentNumbers = getAdjacentNumbersFromLine(currentLine, leftAdjacentIndex, rightAdjecentIndex);
+    var bottomAdjacentNumbers = getAdjacentNumbersFromLine(bottomLine, leftAdjacentIndex, rightAdjecentIndex);
+    adjacentNumbersContainer = topAdjacentNumbers.concat(currentAdjacentNumbers, bottomAdjacentNumbers);
+    if (adjacentNumbersContainer.length === 2) {
+        return adjacentNumbersContainer[0] * adjacentNumbersContainer[1];
+    }
+    else {
+        return 0;
+    }
 };
-var gatherAdjacentNumbers = function (lines) {
-    var numbersAdjacentToSymbol = [];
+var gatherGearRatios = function (lines) {
+    var gearRatios = [];
     lines.forEach(function (currentLine, lineIndex) {
-        var regexNumberMatch = /\d+/g;
+        var regexGearMatch = /\*/g;
         var result;
-        var matchedNumberObjs = [];
-        while (result = regexNumberMatch.exec(currentLine)) {
+        var matchedGearObjs = [];
+        while (result = regexGearMatch.exec(currentLine)) {
             var leftAdjacentIndex = result.index - 1 === -1 ? 0 : result.index - 1;
-            var rightAdjecentIndex = regexNumberMatch.lastIndex + 1;
-            var number = Number(result[0]);
-            var matchedNumberObj = {
-                number: number,
-                index: leftAdjacentIndex,
-                lastIndex: rightAdjecentIndex
+            var rightAdjecentIndex = regexGearMatch.lastIndex + 1;
+            var matchedGearObj = {
+                leftAdjacentIndex: leftAdjacentIndex,
+                rightAdjacentIndex: rightAdjecentIndex
             };
-            matchedNumberObjs.push(matchedNumberObj);
+            matchedGearObjs.push(matchedGearObj);
         }
-        if (matchedNumberObjs.length === 0) {
+        if (matchedGearObjs.length === 0) {
             return;
         }
-        matchedNumberObjs.forEach(function (matchedNumber) {
-            if (!matchedNumber) {
+        matchedGearObjs.forEach(function (matchedGear) {
+            if (!matchedGear) {
                 return;
             }
-            var number = matchedNumber.number, index = matchedNumber.index, lastIndex = matchedNumber.lastIndex;
+            var leftAdjacentIndex = matchedGear.leftAdjacentIndex, rightAdjacentIndex = matchedGear.rightAdjacentIndex;
             var topLine = lines[lineIndex - 1];
             var bottomLine = lines[lineIndex + 1];
-            var numberIsAdjacent = numberIsAdjacentToSymbol(index, lastIndex, currentLine, topLine, bottomLine);
-            if (numberIsAdjacent) {
-                numbersAdjacentToSymbol.push(number);
+            var gearRatio = getGearRatio(leftAdjacentIndex, rightAdjacentIndex, currentLine, topLine, bottomLine);
+            if (gearRatio) {
+                gearRatios.push(gearRatio);
             }
         });
     });
-    console.log(numbersAdjacentToSymbol);
-    return numbersAdjacentToSymbol;
+    return gearRatios;
 };
 var lines = text.split("\n");
-var sum = (0, utils_1.sumAllLines)(gatherAdjacentNumbers(lines));
+var sum = (0, utils_1.sumAllLines)(gatherGearRatios(lines));
 log(sum);

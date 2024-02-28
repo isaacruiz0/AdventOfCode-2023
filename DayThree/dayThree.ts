@@ -1,106 +1,127 @@
 import { readFileSync } from "fs";
-import { sumAllLines } from "../Utilities/utils";
+import { sumAllLines, getNumberAtIndex } from "../Utilities/utils";
+import { start } from "repl";
+
 const log = console.log;
 
 const filePath = '../data/EngineSchematic.txt';
 
 const text = readFileSync(filePath, "utf8").toString();
 
-interface MatchedNumber {
-    number : number;
-    index : number;
-    lastIndex : number;
+interface MatchedGear {
+    leftAdjacentIndex  : number;
+    rightAdjacentIndex : number;
 }
 
 const sectionToArray = ( line : string | undefined, leftAdjacentIndex : number, rightAdjecentIndex : number ) : Array<string> => {
-    const sectionArray : Array<string> = [];
+    let sectionArray : Array<string> = [];
     if ( !line ) {
         return [];
     }
     const numberSection = line.slice( leftAdjacentIndex, rightAdjecentIndex );
 
-    const numberSectionArray = numberSection.split("");
-
-    numberSectionArray.forEach( ( item ) => {
-        sectionArray.push( item );
-    } );
+    sectionArray = numberSection.split("");
     
     return sectionArray;
+} 
+
+const getAdjacentNumbersFromLine = (line: string | undefined, leftAdjacentIndex: number, rightAdjecentIndex: number) : Array<number> => {
+
+    if ( !line ) {
+        return [];
+    }
+
+    const numberSection = line.slice( leftAdjacentIndex, rightAdjecentIndex );
+    const regexNumberMatch = /\d+/g;
+
+    let result: RegExpExecArray | null;
+
+    const numberMatchIndexes : Array<number> = [];
+
+    while ( ( result = regexNumberMatch.exec( numberSection ) ) ) {
+        const startingNumberIndex = leftAdjacentIndex + result.index;
+        numberMatchIndexes.push( startingNumberIndex );
+    }
+
+    const adjacentNumbers: Array<number> = [];
+
+    log( line )
+    numberMatchIndexes.forEach( ( numberMatchIndex ) => {
+        log( 'Number Index', numberMatchIndex )
+        adjacentNumbers.push( Number( getNumberAtIndex( line, numberMatchIndex ) ) );
+    });
+
+    return adjacentNumbers;
 }
 
-const numberIsAdjacentToSymbol = ( leftAdjacentIndex : number, rightAdjecentIndex : number, currentLine : string, topLine : string | undefined, bottomLine : string | undefined ) : boolean => {
+type AdjacentNumbersContainer = Array<number>;
+const getGearRatio = ( leftAdjacentIndex : number, rightAdjecentIndex : number, currentLine : string, topLine : string | undefined, bottomLine : string | undefined ) : number => {
 
-    let adjacentItemsContainer : Array<string> = [];
+    let adjacentNumbersContainer : AdjacentNumbersContainer = [];
  
-    const topLineSection = sectionToArray( topLine, leftAdjacentIndex, rightAdjecentIndex );
-    const currentLineSection = sectionToArray( currentLine, leftAdjacentIndex, rightAdjecentIndex );
-    const bottomLineSection = sectionToArray( bottomLine, leftAdjacentIndex, rightAdjecentIndex );
+    type TopAdjacentNumbers = Array<number>;
+    const topAdjacentNumbers : TopAdjacentNumbers  = getAdjacentNumbersFromLine( topLine, leftAdjacentIndex, rightAdjecentIndex );
+    const currentAdjacentNumbers : TopAdjacentNumbers= getAdjacentNumbersFromLine( currentLine, leftAdjacentIndex, rightAdjecentIndex );
+    const bottomAdjacentNumbers : TopAdjacentNumbers= getAdjacentNumbersFromLine( bottomLine, leftAdjacentIndex, rightAdjecentIndex );
 
-    adjacentItemsContainer = adjacentItemsContainer.concat( topLineSection, currentLineSection, bottomLineSection );
+    adjacentNumbersContainer = topAdjacentNumbers.concat(currentAdjacentNumbers, bottomAdjacentNumbers);
 
-
-    const containsSymbol = containsNonNumericItem( adjacentItemsContainer );
-
-    return containsSymbol;
+    if( adjacentNumbersContainer.length === 2 ) {
+        return adjacentNumbersContainer[0] * adjacentNumbersContainer[1];
+    } else {
+        return 0;
+    }
 
 }
 
-const containsNonNumericItem = (adjacentItemsContainer: Array<string>): boolean => {
-    return adjacentItemsContainer.some((item) => isNaN( Number( item ) ) && item !== ".");
-};
-
-const gatherAdjacentNumbers = ( lines : Array<string> ) : Array<number> => {
-    let numbersAdjacentToSymbol : Array<number> = [];
+const gatherGearRatios = ( lines : Array<string> ) : Array<number> => {
+    let gearRatios : Array<number> = [];
 
     lines.forEach( ( currentLine, lineIndex ) => {
-        const regexNumberMatch = /\d+/g;
+        const regexGearMatch = /\*/g;
         let result : RegExpExecArray | null;
+        let matchedGearObjs : Array<MatchedGear | null> = [];
         
-        let matchedNumberObjs : Array<MatchedNumber | null> = [];
-        while ( result = regexNumberMatch.exec( currentLine ) ) {
+        while ( result = regexGearMatch.exec( currentLine ) ) {
             const leftAdjacentIndex  = result.index - 1 === -1 ? 0 : result.index - 1 ;
-            const rightAdjecentIndex = regexNumberMatch.lastIndex + 1;
-            const number = Number( result[0] );
+            const rightAdjecentIndex = regexGearMatch.lastIndex + 1;
 
-
-
-
-            const matchedNumberObj : MatchedNumber = {
-                number: number,
-                index: leftAdjacentIndex,
-                lastIndex: rightAdjecentIndex 
+            const matchedGearObj : MatchedGear = {
+                leftAdjacentIndex: leftAdjacentIndex,
+                rightAdjacentIndex: rightAdjecentIndex 
             }
             
-            matchedNumberObjs.push( matchedNumberObj );
+            matchedGearObjs.push( matchedGearObj );
         }
         
-        if( matchedNumberObjs.length === 0 ) {
+        if( matchedGearObjs.length === 0 ) {
             return;
         }
 
-        matchedNumberObjs.forEach( ( matchedNumber ) => {
-            if ( !matchedNumber ) {
+        matchedGearObjs.forEach( ( matchedGear ) => {
+
+            if ( !matchedGear ) {
                 return;
             }
 
-            const { number, index, lastIndex } = matchedNumber;
+            const { leftAdjacentIndex, rightAdjacentIndex } = matchedGear;
             const topLine = lines[ lineIndex - 1 ];
             const bottomLine = lines[ lineIndex + 1 ];
 
-            const numberIsAdjacent = numberIsAdjacentToSymbol( index, lastIndex, currentLine, topLine, bottomLine );
+            const gearRatio = getGearRatio( leftAdjacentIndex, rightAdjacentIndex, currentLine, topLine, bottomLine );
             
-            if ( numberIsAdjacent ) {
-                numbersAdjacentToSymbol.push( number );
+            if ( gearRatio ) {
+                gearRatios.push( gearRatio );
             }
         } );
         
     } ); 
 
-    return numbersAdjacentToSymbol
+    return gearRatios
 };
 
 
 const lines = text.split("\n");
-const sum = sumAllLines( gatherAdjacentNumbers( lines ) );
+const sum = sumAllLines( gatherGearRatios( lines ) );
 
-log(sum)
+log( sum );
