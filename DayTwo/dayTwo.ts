@@ -1,92 +1,117 @@
-// POSSIBLE GAMES FROM
-// 12 red cubes, 13 green cubes, and 14 blue cubes
-const { readFileSync } = require('fs');
+const log = console.log;
+//The Elf would first like to know which games would have been possible if the bag contained only 12 red cubes, 13 green cubes, and 14 blue cubes?
 
-const filePath = '../data/GameResultsList.txt';
+import { readFileSync } from "fs";
+type Games = Array<string>;
+type GameID = number;
 
-const data = readFileSync(filePath, 'utf8');
-const lines : Array<string> = data.split('\n');
+const main = () => {
+    const filePath = "../data/GameResultsList.txt";
+    const text = readFileSync(filePath, "utf8").toString();
 
-enum LOADED_BAG {
-    RED = 12,
-    GREEN = 13,
-    BLUE = 14
+    const games : Games = text.split("\n");
+
+    const gameIDList = createValidGameIDList( games );
+    console.log(gameIDList)
+    
+    const validGameIDSum = sumArray( gameIDList );
+
+    console.log( validGameIDSum );
+ }
+
+const createValidGameIDList = ( games : Games ) : Array<GameID> => {
+    return games.map( gameProcessor );
 }
 
-interface gameColorSubset {
-    red ?: number,
-    green ?: number,
-    blue ?: number
+/**
+ * @param 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
+ */
+const gameProcessor = ( game : Games[number], index : number ) : GameID => {
+    const gameID = index + 1;
+
+    const isPossible = calculateGamePossibility( game );
+
+    if ( isPossible ) {
+       return gameID;
+    }
+
+    return 0;
 }
 
-const grabGameId = ( gameIdSplit : string ) : number => {
-    const gameId = gameIdSplit.split( ' ' )[1];
+/**
+ * @param 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
+ */
+const calculateGamePossibility = ( game : Games[number] ) : boolean => {
+    const setsList = grabSets( game );
+    const gameIsPossible = !containsInvalidSet( setsList );
 
-    return parseInt( gameId );
+    return gameIsPossible;
 }
 
-const grabSubsets = ( splitSubsets : string ) => {
-    const subsets = splitSubsets.split( ';' );
-   
-   // [ ' 3 blue, 4 red', ' 1 red, 2 green, 6 blue', ' 2 green' ] 
-    return subsets;
-}
+/**
+ * @param [ '1 red, 10 blue, 5 green', '11 blue, 6 green' ]
+ */
+const containsInvalidSet = ( sets : Array<string> ) : boolean =>  {
+    // interface MaxCubeCount {
+    //     red : number;
+    //     green : number;
+    //     blue : number;
+    // }    
 
-const createSubsetObjectList = ( subsets : Array<string> ) : Array<gameColorSubset> => {
-    let subsetList : Array<gameColorSubset> = [];
-    // [ ' 3 blue, 4 red', ' 1 red, 2 green, 6 blue', ' 2 green' ]
-    subsets.forEach( ( subset ) => {   
-        // [ ' 3 blue', ' 4 red' ]
-        const rolledCubes = subset.split( ',' );
+    // const maxCubeCount : MaxCubeCount = {
+    //     red: 12,
+    //     green: 13,
+    //     blue: 14
+    // }
 
-        const gameColorObject : gameColorSubset = {};
+    enum MaxCubeCount {
+        red = 12,
+        green = 13,
+        blue = 14
+    }
 
-        rolledCubes.forEach( ( rolledCube ) => {
-            const rolledCubeSplit = rolledCube.split( ' ' );
-            gameColorObject[ rolledCubeSplit[2].trim() as keyof gameColorSubset ] = parseInt( rolledCubeSplit[1] ); 
+    const containsInvalidSetFlag = sets.some( ( set ) => { 
+        const cubes = set.split( ',' ).map( ( cube ) => {
+            return cube.trim();
+        } ); 
+    
+        const cubeCountOutOfRange = cubes.some( ( cube ) => {
+            const cubePair= cube.split(' ');
+            const count : number = parseInt( cubePair[0] );
+            const color = cubePair[1] as keyof MaxCubeCount;
+    
+            return count > MaxCubeCount[ color ]
+    
         } );
 
-        subsetList.push( gameColorObject );
-    });
+        return cubeCountOutOfRange
+    } )
 
-    return subsetList;
+    return containsInvalidSetFlag;
 }
 
-const isGameValid = ( subsetList : Array<gameColorSubset> ) : boolean => {
-    let validGame = true;
-    // [ { blue: 3, red: 4 }, { red: 1, green: 2, blue: 6 }, { green: 2 } ]
-    subsetList.forEach( ( subset ) => {
-        const invalidRed = subset.red && subset.red > LOADED_BAG.RED;
-        const invalidGreen = subset.green && subset.green > LOADED_BAG.GREEN;
-        const invalidBlue = subset.blue && subset.blue > LOADED_BAG.BLUE;
-        if ( invalidRed || invalidGreen || invalidBlue) {
-            validGame = false;
-        }
-    });
-    
-    return validGame;
+/**
+ * @param 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
+ */
+const grabSets = ( game : Games[number] ) : Array<string> => {
+    const removeGameIDIndex = game.indexOf( ':' ) + 1;
+
+    const parsedGame = game.slice( removeGameIDIndex );
+
+    const sets = parsedGame.split( ';' ).map( ( set ) => {
+        return set.trim();
+    } )
+
+    return sets;
 }
 
-const gatherValidGameIds = (lines: Array<string>) : Array<number> => {
-    let validGameIds : Array<number> = [];
+const sumArray = ( numbers : Array<number> ) : number => {
+    let sum = 0;
+    for (const number of numbers) {
+        sum += number;
+    }
 
-    lines.forEach( ( line ) => {
-        const splitGameIdAndColors = line.split( ':' );
-        const gameId = grabGameId( splitGameIdAndColors[0] );
-        const subsets = grabSubsets( splitGameIdAndColors[1] );
-        const subsetList = createSubsetObjectList( subsets );
-
-        if ( isGameValid( subsetList ) ) {
-            validGameIds.push( gameId );
-        }
-    })
-
-    return validGameIds;
+    return sum;
 }
 
-const  validGameIds : Array<number> = gatherValidGameIds( lines );
-const sumOfValidGameIds = validGameIds.reduce( ( ret : number, currentValue : number ) : number => {
-    return ret + currentValue;
-} );
-
-console.log( sumOfValidGameIds );
+main();

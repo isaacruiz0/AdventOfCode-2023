@@ -35,18 +35,17 @@ var createSubsetObjectList = function (subsets) {
     return subsetList;
 };
 var isGameValid = function (subsetList) {
-    var redCubes = 0;
-    var greenCubes = 0;
-    var blueCubes = 0;
+    var validGame = true;
+    // [ { blue: 3, red: 4 }, { red: 1, green: 2, blue: 6 }, { green: 2 } ]
     subsetList.forEach(function (subset) {
-        redCubes += subset.red || 0;
-        greenCubes += subset.green || 0;
-        blueCubes += subset.blue || 0;
+        var invalidRed = subset.red && subset.red > LOADED_BAG.RED;
+        var invalidGreen = subset.green && subset.green > LOADED_BAG.GREEN;
+        var invalidBlue = subset.blue && subset.blue > LOADED_BAG.BLUE;
+        if (invalidRed || invalidGreen || invalidBlue) {
+            validGame = false;
+        }
     });
-    if (redCubes > LOADED_BAG.RED || greenCubes > LOADED_BAG.GREEN || blueCubes > LOADED_BAG.BLUE) {
-        return false;
-    }
-    return true;
+    return validGame;
 };
 var gatherValidGameIds = function (lines) {
     var validGameIds = [];
@@ -65,5 +64,4 @@ var validGameIds = gatherValidGameIds(lines);
 var sumOfValidGameIds = validGameIds.reduce(function (ret, currentValue) {
     return ret + currentValue;
 });
-console.log(validGameIds);
 console.log(sumOfValidGameIds);
