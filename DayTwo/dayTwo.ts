@@ -1,32 +1,40 @@
 const log = console.log;
-//The Elf would first like to know which games would have been possible if the bag contained only 12 red cubes, 13 green cubes, and 14 blue cubes?
 
 import { readFileSync } from "fs";
 type Games = Array<string>;
 type GameID = number;
+enum MaxCubeCount {
+    red = 12,
+    green = 13,
+    blue = 14
+}
 
-const main = () => {
-    const filePath = "../data/GameResultsList.txt";
-    const text = readFileSync(filePath, "utf8").toString();
+interface CubeMakeup {
+    red : number;
+    green : number;
+    blue : number;
+}
 
-    const games : Games = text.split("\n");
+const filePath = "../data/GameResultsList.txt";
+const text = readFileSync(filePath, "utf8").toString();
+const games : Games = text.split("\n");
+
+const grabValidGameIDSum = () => {
 
     const gameIDList = createValidGameIDList( games );
-    console.log(gameIDList)
     
     const validGameIDSum = sumArray( gameIDList );
 
-    console.log( validGameIDSum );
- }
+}
 
 const createValidGameIDList = ( games : Games ) : Array<GameID> => {
-    return games.map( gameProcessor );
+    return games.map( validGameProcessor );
 }
 
 /**
  * @param 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
  */
-const gameProcessor = ( game : Games[number], index : number ) : GameID => {
+const validGameProcessor = ( game : Games[number], index : number ) : GameID => {
     const gameID = index + 1;
 
     const isPossible = calculateGamePossibility( game );
@@ -49,49 +57,59 @@ const calculateGamePossibility = ( game : Games[number] ) : boolean => {
 }
 
 /**
+ * Game - 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
+ * Sets  - [ '1 red, 10 blue, 5 green', '11 blue, 6 green' ]
+ * Set - '1 red, 10 blue, 5 green'
+ * Cubes - [ '1 red', '10 blue', '5 green' ]
+ */
+
+
+/**
  * @param [ '1 red, 10 blue, 5 green', '11 blue, 6 green' ]
  */
 const containsInvalidSet = ( sets : Array<string> ) : boolean =>  {
-    // interface MaxCubeCount {
-    //     red : number;
-    //     green : number;
-    //     blue : number;
-    // }    
-
-    // const maxCubeCount : MaxCubeCount = {
-    //     red: 12,
-    //     green: 13,
-    //     blue: 14
-    // }
-
-    enum MaxCubeCount {
-        red = 12,
-        green = 13,
-        blue = 14
-    }
-
     const containsInvalidSetFlag = sets.some( ( set ) => { 
-        const cubes = set.split( ',' ).map( ( cube ) => {
-            return cube.trim();
-        } ); 
+        const cubes = grabCubes( set );
     
-        const cubeCountOutOfRange = cubes.some( ( cube ) => {
-            const cubePair= cube.split(' ');
-            const count : number = parseInt( cubePair[0] );
-            const color = cubePair[1] as keyof MaxCubeCount;
+        const containsCubeOutOfRange = cubes.some( ( cube ) => {
+            const cubePair = grabCubePair( cube );
     
-            return count > MaxCubeCount[ color ]
-    
+            return cubePair.count > MaxCubeCount[ cubePair.color ];
         } );
 
-        return cubeCountOutOfRange
+        return containsCubeOutOfRange;
     } )
 
     return containsInvalidSetFlag;
 }
+/**
+ * @param '1 red, 10 blue, 5 green'
+ * @returns [ '1 red', '10 blue', '5 green' ]
+ */
+const grabCubes = ( set : string ) => {
+    return set.split( ',' ).map( ( cube ) => {
+        return cube.trim();
+    } ); ;
+}
+
+/**
+ * @param '1 red'
+ * @returns {
+ *              color: 'red',
+ *              count: 1
+ *          }
+ */
+const grabCubePair = ( cube : string ): any => {
+    const cubePair = cube.split(' ');
+    const count : number = parseInt( cubePair[0] );
+    const color = cubePair[1] as keyof typeof MaxCubeCount;
+
+    return { color, count };
+}
 
 /**
  * @param 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
+ * @returns [ '1 red, 10 blue, 5 green', '11 blue, 6 green' ]
  */
 const grabSets = ( game : Games[number] ) : Array<string> => {
     const removeGameIDIndex = game.indexOf( ':' ) + 1;
@@ -112,6 +130,50 @@ const sumArray = ( numbers : Array<number> ) : number => {
     }
 
     return sum;
+
 }
 
-main();
+grabValidGameIDSum();
+
+// The power of a set of cubes is equal to the numbers of red, green, and blue cubes multiplied together
+
+const grabMinimumSetOfCubesSum = () => {
+    const powerCubesList = createCubePowerList( games );
+    const sum = sumArray( powerCubesList );
+
+    return sum;
+}
+
+const createCubePowerList = ( games: Games ) : Array<number> => {
+    return games.map( grabCubePower );
+}
+
+/**
+ * @param 'Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green'
+ */
+const grabCubePower = ( game : string ) : number => {
+    const minimumCubesPossible : CubeMakeup = {
+        red: 0,
+        green: 0,
+        blue: 0,
+    }
+
+    const setsList = grabSets( game );
+    setsList.forEach( ( set ) => {
+        const cubes = grabCubes( set );
+        cubes.forEach( ( cube ) => {
+            const cubePair = grabCubePair( cube );
+            if ( cubePair.count > minimumCubesPossible[ cubePair.color as keyof CubeMakeup ] ) {
+                minimumCubesPossible[ cubePair.color as keyof CubeMakeup ] = cubePair.count;
+            }
+        } )
+    } )
+
+    return calculatePower( minimumCubesPossible );
+}
+
+const calculatePower = ( minimumCubesPossible : CubeMakeup ) : number => {
+    return minimumCubesPossible.blue*minimumCubesPossible.green*minimumCubesPossible.red;    
+};
+
+log( grabMinimumSetOfCubesSum() );
